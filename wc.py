@@ -27,7 +27,7 @@ config = SafeConfigParser()
 false = False
 true = True
   
-def wc_request(session,endpoint,data_original=None):
+def wc_request(session,endpoint,data_original=None,debug=False):
   cookies = cookielib.CookieJar()
   if ENABLE_PROXY:
     proxy_handler = urllib2.ProxyHandler({"http" : PROXY_SERVER})
@@ -81,7 +81,7 @@ def wc_request(session,endpoint,data_original=None):
     response_data = response.read()
     
   response_json = json.loads(zlib.decompress(wc_decrypt(response_data,uh)))
-  if DEBUG :
+  if DEBUG or debug == True:
     print_color(response_json,"1;33")
   else:
     if response_json["error"] != 0:
@@ -157,7 +157,7 @@ def print_color(target,color=33):
 
 def wc_load_session():
   session = {}
-  session['cookie'] = 'wcatpt=' + get_conf('cookie','wcatpt') + '%3A1'
+  session['cookie'] = 'wcatpt=' + get_conf('cookie','wcatpt').rstrip('%3A1') + '%3A1'
   session['uh'] = get_conf('device','uh')
   return session  
 
@@ -188,7 +188,7 @@ def func_send_google_forms(formsName, device_uuid, magic_stone, user_id, gachas,
 def func_list_to_string(ids):
   return str(ids).replace('u\'', '\"').replace('\'', '"').replace(' ', '')
       
-def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0):
+def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0,debug=False):
   if fid == 0 and fcid == 0:
     quest_list_resp = wc_request(session,'ajax/quest/list', '{"wid":1,"aid":1,"hard":0}') 
     rand = random.randrange(0, 5, 1)
@@ -196,34 +196,51 @@ def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0):
     fcid = quest_list_resp["result"]["friends"][rand]["card"]["cId"]
   qt = generate_qt()
   quest_generate_resp = wc_request(session,'ajax/quest/generate', '{"qt":"' + str(qt) + '","qid":' + str(qid) + ',"did":' + str(did) + ',"fid":' + str(fid) + ',"fcid":' + str(fcid) + ',"hard":' + str(hard) + '}')
-
-  time.sleep(10)
-  
+ 
   itemIds = []
   weaponIds = []
   ornamentIds = []
-  itemIds = []
+  cardIds = []
   destroyEnemyIds = []
-  destroyObjectIds = []
-  openTreasureIds = []
-
+  destroyObjectIds = []  
+  openTreasureIds = []   
+  gold = 0
+  exp = 0
+  
   for stageData in quest_generate_resp["result"]["stageDatas"]:
+    #print_color(stageData,"1;36")
+    if stageData.has_key('stageEnemyParams'):
+      stageData['stageEnemyParams']
     if stageData.has_key('stageEnemies'):
       for stageEnemie in stageData["stageEnemies"]:
         if stageEnemie.has_key('itemId'):
           itemIds.append(stageEnemie["itemId"])
+        if stageEnemie.has_key('weaponId'):
+          weaponIds.append(stageEnemie["weaponId"])
+        if stageEnemie.has_key('cardId'):
+          cardIds.append(stageEnemie["cardId"])
         destroyEnemyIds.append(stageEnemie["id"])
-    if stageData.has_key('stageTreasures'):
-      for stageTreasure in stageData["stageTreasures"]:
-        if stageTreasure.has_key('itemId'):    
-          itemIds.append(stageTreasure["itemId"])
-          openTreasureIds.append(stageTreasure["id"])
-        
-  #print "itemIds:        " + func_list_to_string(itemIds)
-  #print "destroyEnemyIds:" + func_list_to_string(destroyEnemyIds)
-  #print "openTreasureIds:" + func_list_to_string(openTreasureIds)
-  return wc_request(session,'ajax/quest/complete', '{"qt":"' + quest_generate_resp["result"]["qt"] + '","gold":' + str(random.randrange(200, 1000, 1)) + ',"soul":' + str(random.randrange(20, 100, 1)) + ',"cardIds":[],"weaponIds":[],"ornamentIds":[],"itemIds":' + func_list_to_string(itemIds) + ',"destroyEnemyIds":' + func_list_to_string(destroyEnemyIds) + ',"destroyObjectIds":[],"openTreasureIds":' + func_list_to_string(openTreasureIds) + ',"totalDamageCount":0,"totalDamageAmount":0,"totalDamageCountFromPlacementObject":0,"totalDeadCount":0,"totalHelperDeadCount":0,"totalBadStatusCount":0,"totalActionSkillUseCount":0,"totalAllAttackUseCount":0,"isDestroyBossAtActionSkill":false,"isDestroyBossAtAllAttack":false,"maxChainNum":0,"routeId":0}')     
-             
+        for stageEnemyParam in stageData['stageEnemyParams']:
+          if stageEnemyParam["smonId"] == stageEnemie["smonId"]:
+            gold += stageEnemyParam["gold"]
+            exp += stageEnemyParam["exp"]
+  if debug:
+    print "gold            : " + str(gold)
+    print "soul            : " + str(exp)
+    print "cardIds         : " + func_list_to_string(cardIds).lstrip('[').rstrip(']')
+    print "weaponIds       : " + func_list_to_string(weaponIds).lstrip('[').rstrip(']')
+    print "ornamentIds     : " + func_list_to_string(ornamentIds).lstrip('[').rstrip(']')
+    print "itemIds         : " + func_list_to_string(itemIds).lstrip('[').rstrip(']')
+    print "destroyEnemyIds : " + func_list_to_string(destroyEnemyIds).lstrip('[').rstrip(']')
+    print "destroyObjectIds: " + func_list_to_string(destroyObjectIds).lstrip('[').rstrip(']')
+    print "openTreasureIds : " + func_list_to_string(openTreasureIds).lstrip('[').rstrip(']')
+  time.sleep(10)
+    
+  return wc_request(session,'ajax/quest/complete', '{"qt":"' + quest_generate_resp["result"]["qt"] + '","gold":' + str(gold) + ',"soul":' + str(exp) + ',"cardIds":' + func_list_to_string(cardIds) + ',"weaponIds":' + func_list_to_string(weaponIds) + ',"ornamentIds":[],"itemIds":' + func_list_to_string(itemIds) + ',"destroyEnemyIds":' + func_list_to_string(destroyEnemyIds) + ',"destroyObjectIds":[],"openTreasureIds":' + func_list_to_string(openTreasureIds) + ',"totalDamageCount":0,"totalDamageAmount":0,"totalDamageCountFromPlacementObject":0,"totalDeadCount":0,"totalHelperDeadCount":0,"totalBadStatusCount":0,"totalActionSkillUseCount":0,"totalAllAttackUseCount":0,"isDestroyBossAtActionSkill":false,"isDestroyBossAtAllAttack":false,"maxChainNum":0,"routeId":0}')     
+
+def wc_regist_checkregister_resp(session):
+  return wc_request(session,'ajax/regist/checkregister', None)             
+  
 def main():
   if not len(sys.argv) >= 2:
     return
@@ -257,15 +274,19 @@ def main():
 
   elif sys.argv[1] == 'takeover' or sys.argv[1] == 'ta':
     session = wc_load_session()
-    print_color(wc_request(session,'ajax/regist/createwcataccount','{"email":"' + get_conf('device','id') + '@wcat.co.jp","password":"1234qwer","confirmPassword":"1234qwer","secretQuestionType":7,"secretQuestionAnswer":"kawasaki"}'))
+    if not len(sys.argv) >= 3:
+      emailaddr = str(wc_regist_checkregister_resp(session)["result"]["userId"]) + '@wcat.co.jp'
+    else:
+      emailaddr = sys.argv[2]
+    print '{"email":"' + emailaddr + '","password":"1234qwer","confirmPassword":"1234qwer","secretQuestionType":7,"secretQuestionAnswer":"kawasaki"}'
+    print_color(wc_request(session,'ajax/regist/createwcataccount','{"email":"' + emailaddr + '","password":"1234qwer","confirmPassword":"1234qwer","secretQuestionType":7,"secretQuestionAnswer":"kawasaki"}'))
     
   elif sys.argv[1] == 'tutorial' or sys.argv[1] == 'tu':
-
+    inviteCode = "C6YCMMS9L"
+    
     resp = wc_request(None,'ajax/regist/create', '{"d":"b0edac6f610d2fda75e2c8763372f8b3b24a39e97b2bdf69e2eccbda1e250fb37e96b91d6e81612b0e576c113366186a","fromCode":"","fromParam":"","fromAffiliate":""}')
     set_conf('device', 'uh', resp["result"]["uh"])
-    set_conf('device', 'id', str(resp["result"]["userInfo"]["id"]))
-
-
+    
     #custom_uh = "6e750540d57ed37bed323a082f18e1a1"
     #custom_cookie = "74fGSqsfX7RsQRerg5TaSVJkTWpglF6AcO298HlbWaLvJrGHBO_mzz3Y7MuvWku966NSHdST8UAipf4BfZ3kdjdFb1NXHmuv%3A1"
     #set_conf('device', 'uh', custom_uh)
@@ -355,7 +376,7 @@ def main():
     wc_request(session,'ajax/quest/talkread', '{"qid":7,"baType":0,"hard":0}')
     wc_request(session,'ajax/quest/talkread', '{"qid":1,"baType":0,"hard":1}')
     
-    inputinvitecode_resp = wc_request(session,'ajax/user/inputinvitecode', '{"URL":"ajax/user/inputinvitecode","inviteCode":"CNYKWH9SE"}')
+    inputinvitecode_resp = wc_request(session,'ajax/user/inputinvitecode', '{"URL":"ajax/user/inputinvitecode","inviteCode":"' + inviteCode + '"}')
     print_color(inputinvitecode_resp)
     wc_request(session,'ajax/user/loginbonus', None)
     while True:
@@ -372,8 +393,11 @@ def main():
     print_color(gacha2_resp, '1;32')
     gacha3_resp = wc_request(session,'ajax/gacha/exe', '{"id":2,"nowCrystal":' + str(crystal-25) + '}')
     print_color(gacha3_resp, '1;32') 
-    
-    weapon = "%sS %s" % (weapon1_resp["result"]["weapon"]["rar"], weapon1_resp["result"]["weapon"]["name"])
+
+    weapon2_resp = wc_request(session,'ajax/gacha/weaponexe', '{"gId":1,"nowCrystal":' + str(crystal-50) + '}')
+    print_color(weapon2_resp,"1;32")	
+        
+    weapon = "%sS %s" % (weapon2_resp["result"]["weapon"]["rar"], weapon2_resp["result"]["weapon"]["name"])
     characters = []
     if gacha1_resp["result"]["userCards"] != []:
       character = "%sS %s%s" % (gacha1_resp["result"]["userCards"][0]["rar"],gacha1_resp["result"]["userCards"][0]["preName"],gacha1_resp["result"]["userCards"][0]["name"])
@@ -392,14 +416,25 @@ def main():
     #print weapon
     print weapon.encode('utf-8')
     func_send_google_forms('1NeEjt7KJlNdqztVWnuweKGJEmYJ-NsjcmyJeefpF-dw', session['cookie'], session['uh'], inputinvitecode_resp["result"]["inviteCode"], characters, weapon.encode('utf-8'))
-    #weapon2_resp = wc_request(session,'ajax/gacha/weaponexe', '{"gId":1,"nowCrystal":' + str(crystal-50) + '}')
-    #print_color(weapon2_resp,"1;32")	
+
 
   elif sys.argv[1] == 'test' or sys.argv[1] == 'te':
     session = wc_load_session()
-    quest_generate_resp = quest_generate(session,1,0,0,0,1)
-    time.sleep(10)
-    print_color(quest_complete(session,quest_generate_resp))
-          
+    #regist_checkregister_resp = wc_request(session,'ajax/regist/checkregister', None)     
+    #print_color(regist_checkregister_resp, '1;32') 
+
+    #wc_quest_generate_complete(session,10061,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10066,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10040,0,0,0,0,True)
+    wc_quest_generate_complete(session,10078,0,0,0,0,False)
+    wc_quest_generate_complete(session,10079,0,0,0,0,False)
+    wc_quest_generate_complete(session,10080,0,0,0,0,False)
+    wc_quest_generate_complete(session,10081,0,0,0,0,False)
+    wc_quest_generate_complete(session,10082,0,0,0,0,False)
+    #wc_quest_generate_complete(session,10008,0,0,0,0,True)
+
+  elif sys.argv[1] == 'eventlist' or sys.argv[1] == 'ev':
+    session = wc_load_session()
+    wc_request(session,'ajax/quest/eventlist', None,True)
 if __name__ == "__main__":
   main()
