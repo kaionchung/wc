@@ -26,7 +26,16 @@ config = SafeConfigParser()
 
 false = False
 true = True
-  
+
+wc_category = [  
+  {'id': 1, 'weapon_name': '剣'},
+  {'id': 2, 'weapon_name': '拳'},
+  {'id': 3, 'weapon_name': '斧'},
+  {'id': 4, 'weapon_name': '槍'},    
+  {'id': 5, 'weapon_name': '弓'},    
+  {'id': 6, 'weapon_name': '魔'},    
+]
+
 def wc_request(session,endpoint,data_original=None,debug=False):
   cookies = cookielib.CookieJar()
   if ENABLE_PROXY:
@@ -79,8 +88,13 @@ def wc_request(session,endpoint,data_original=None,debug=False):
     response_data = f.read()
   else:
     response_data = response.read()
+  
+  try:
+    response_json = json.loads(zlib.decompress(wc_decrypt(response_data,uh)))
+  except:
+    print '\033[1;37;41m' + ' DECRYPT FALSE ' + '\033[m'
+    return False
     
-  response_json = json.loads(zlib.decompress(wc_decrypt(response_data,uh)))
   if DEBUG or debug == True:
     print_color(response_json,"1;33")
   else:
@@ -229,14 +243,21 @@ def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0,debug=False
         if stageTreasure.has_key('itemId'):    
           itemIds.append(stageTreasure["itemId"])
         openTreasureIds.append(stageTreasure["id"])
-          
+  
+  itemIdsString = ""
+  for itemId in itemIds:
+    if itemId % 100 == 30:
+      itemIdsString += '\033[1;31m' + str(itemId) + '\033[m' + ","
+    else:
+      itemIdsString += str(itemId) + ","
+    
   if debug:
     print "gold            : " + str(gold)
     print "soul            : " + str(exp)
     print "cardIds         : " + func_list_to_string(cardIds).lstrip('[').rstrip(']')
     print "weaponIds       : " + func_list_to_string(weaponIds).lstrip('[').rstrip(']')
     print "ornamentIds     : " + func_list_to_string(ornamentIds).lstrip('[').rstrip(']')
-    print "itemIds         : " + func_list_to_string(itemIds).lstrip('[').rstrip(']')
+    print "itemIds         : " + itemIdsString.rstrip(',') #func_list_to_string(itemIds).lstrip('[').rstrip(']')
     print "destroyEnemyIds : " + func_list_to_string(destroyEnemyIds).lstrip('[').rstrip(']')
     print "destroyObjectIds: " + func_list_to_string(destroyObjectIds).lstrip('[').rstrip(']')
     print "openTreasureIds : " + func_list_to_string(openTreasureIds).lstrip('[').rstrip(']')
@@ -246,7 +267,94 @@ def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0,debug=False
 
 def wc_regist_checkregister_resp(session):
   return wc_request(session,'ajax/regist/checkregister', None)             
-  
+
+#def wc_
+#  session = wc_load_session()
+#  wc_request(session,'ajax/user/loginbonus', None)
+#  regist_checkregister_resp = wc_request(session,'ajax/regist/checkregister', None)
+#  characters = []
+#  for card in regist_checkregister_resp["result"]["cards"]:
+#    print "%dS%s %s%s" % (card["rar"],func_select('id',card["weaponId"],wc_category)['weapon_name'],card["preName"].encode('utf-8'),card["name"].encode('utf-8'))
+#    characters.append( "%dS%s %s%s" % (card["rar"],func_select('id',card["weaponId"],wc_category)['weapon_name'],card["preName"].encode('utf-8'),card["name"].encode('utf-8')) )
+#  characters = sorted(characters, reverse=True)
+#  weapons = []
+#  for weapon in regist_checkregister_resp["result"]["weapons"]:
+#    print "%dS%s %s" % (weapon["rar"],func_select('id',weapon["category"],wc_category)['weapon_name'],weapon["name"].encode('utf-8'))
+#    weapons.append( "%dS%s %s" % (weapon["rar"],func_select('id',weapon["category"],wc_category)['weapon_name'],weapon["name"].encode('utf-8')) )
+#  weapons = sorted(weapons, reverse=True)    
+#  func_send_google_forms('1NeEjt7KJlNdqztVWnuweKGJEmYJ-NsjcmyJeefpF-dw', session['cookie'], session['uh'], regist_checkregister_resp["result"]["userInfo"]["inviteCode"], characters, weapons[0])
+
+def func_daily(formsName,cookie_uh):
+  #formsName = '1gRXqjsvXoaFyZfxJHJncCjk96L1NDL5-gNs-8t5-D3Y'
+  set_conf('device', 'uh', cookie_uh.split(',')[1])
+  set_conf('cookie', 'wcatpt', cookie_uh.split(',')[0])
+  session = wc_load_session()
+  if wc_request(session,'ajax/user/loginbonus', None) == False:
+    return False
+  regist_checkregister_resp = wc_request(session,'ajax/regist/checkregister', None)
+  characters = []
+  for card in regist_checkregister_resp["result"]["cards"]:
+    #print "%dS%s %s%s" % (card["rar"],func_select('id',card["weaponId"],wc_category)['weapon_name'],card["preName"].encode('utf-8'),card["name"].encode('utf-8'))
+    if card["rar"] >= 2:
+      characters.append( "%dS%s %s%s" % (card["rar"],func_select('id',card["weaponId"],wc_category)['weapon_name'],card["preName"].encode('utf-8'),card["name"].encode('utf-8')) )
+  characters = sorted(characters, reverse=True)
+  weapons = []
+  for weapon in regist_checkregister_resp["result"]["weapons"]:
+    #print "%dS%s %s" % (weapon["rar"],func_select('id',weapon["category"],wc_category)['weapon_name'],weapon["name"].encode('utf-8'))
+    weapons.append( "%dS%s %s" % (weapon["rar"],func_select('id',weapon["category"],wc_category)['weapon_name'],weapon["name"].encode('utf-8')) )
+  weapons = sorted(weapons, reverse=True)    
+  func_send_google_forms(formsName, session['cookie'].lstrip('wcatpt=').rstrip('%3A1') + ',' + session['uh'], regist_checkregister_resp["result"]["userStatus"]["crystal"], regist_checkregister_resp["result"]["userInfo"]["inviteCode"], characters, weapons[0])
+
+  return True
+
+def func_daily_main(daily_configFile, function = 'update'):
+  import time
+  daily_config = SafeConfigParser()
+  daily_config.optionxform = str
+  daily_config.read(daily_configFile)
+  accountList = daily_config.items('account')
+  loop = daily_config.get('round', 'loop')
+  loop_max = daily_config.get('round', 'loop_max')
+  return_url = daily_config.get('round', 'return_url')
+  if function == 'update':
+    #print loop_max
+    #print loop
+    if int(loop) < int(loop_max):
+      for accountItem in accountList:
+        account = accountItem[0] 
+        print '\033[1;33m' 'ROUND %s ' % accountItem[1]  + account + '\033[m'
+        if int(accountItem[1]) > int(loop):
+          print '\033[1;33m' + 'SKIP\n' + '\033[m'
+        else:
+          if int(loop) - int(accountItem[1]) > 1:
+            print '\033[1;31m' 'warring - loop number is too large' + '\033[m'
+          res = func_daily(return_url, account)
+          if res == True:
+            daily_config.set('account', account, str(int(accountItem[1])+1))
+            fp = open(daily_configFile, 'wb')
+            daily_config.write(fp)
+          else:
+            daily_config.set('account', account, '8591')
+            fp = open(daily_configFile, 'wb')
+            daily_config.write(fp)
+      daily_config.set('round', 'loop', str(int(loop)+1))
+      fp = open(daily_configFile, 'wb')
+      daily_config.write(fp)
+    else:
+      print '=== DAILY END ==='
+      time.sleep(86400)
+  elif function == 'day':
+    daily_config.set('round', 'loop_max', str(int(loop_max)+1))
+    fp = open(daily_configFile, 'wb')
+    daily_config.write(fp) 
+
+
+def func_select(where_title,where_value,from_table):
+  for row in from_table:
+    if row[where_title] == where_value:
+      return row
+  return None
+    
 def main():
   if not len(sys.argv) >= 2:
     return
@@ -402,8 +510,14 @@ def main():
 
     weapon2_resp = wc_request(session,'ajax/gacha/weaponexe', '{"gId":1,"nowCrystal":' + str(crystal-50) + '}')
     print_color(weapon2_resp,"1;32")	
-        
-    weapon = "%sS %s" % (weapon2_resp["result"]["weapon"]["rar"], weapon2_resp["result"]["weapon"]["name"])
+    
+    func_daily('15nmwq0piVOrjDWV67DPbczdHAnIXYXwcUOqxjsldJXs', session['cookie'].lstrip('wcatpt=').rstrip('%3A1') + ',' + session['uh'])
+    '''
+    if weapon2_resp["result"]["weapon"]["rar"] >= weapon2_resp["result"]["weapon"]["rar"]:
+      weapon = "%dS%s %s" % (weapon2_resp["result"]["weapon"]["rar"], func_select('id',weapon2_resp["result"]["weapon"]["category"],wc_category)['weapon_name'], weapon2_resp["result"]["weapon"]["name"].encode('utf-8'))
+    else:
+      weapon = "%dS%s %s" % (weapon1_resp["result"]["weapon"]["rar"], func_select('id',weapon1_resp["result"]["weapon"]["category"],wc_category)['weapon_name'], weapon1_resp["result"]["weapon"]["name"].encode('utf-8'))
+      
     characters = []
     if gacha1_resp["result"]["userCards"] != []:
       character = "%sS %s%s" % (gacha1_resp["result"]["userCards"][0]["rar"],gacha1_resp["result"]["userCards"][0]["preName"],gacha1_resp["result"]["userCards"][0]["name"])
@@ -420,39 +534,74 @@ def main():
     #print inputinvitecode_resp["result"]["inviteCode"]
     #print characters
     #print weapon
-    print weapon.encode('utf-8')
-    func_send_google_forms('1NeEjt7KJlNdqztVWnuweKGJEmYJ-NsjcmyJeefpF-dw', session['cookie'], session['uh'], inputinvitecode_resp["result"]["inviteCode"], characters, weapon.encode('utf-8'))
-
-
+    
+    #print_color(weapon1_resp)
+    #print_color(weapon2_resp)
+    print weapon
+    func_send_google_forms('1NeEjt7KJlNdqztVWnuweKGJEmYJ-NsjcmyJeefpF-dw', session['cookie'], session['uh'], inputinvitecode_resp["result"]["inviteCode"], characters, weapon)
+    '''
+    
+  elif sys.argv[1] == 'score' or sys.argv[1] == 'sc':
+    session = wc_load_session()
+    wc_request(session,'ajax/user/loginbonus', None)
+    regist_checkregister_resp = wc_request(session,'ajax/regist/checkregister', None)
+    characters = []
+    for card in regist_checkregister_resp["result"]["cards"]:
+      print "%dS%s %s%s" % (card["rar"],func_select('id',card["weaponId"],wc_category)['weapon_name'],card["preName"].encode('utf-8'),card["name"].encode('utf-8'))
+      characters.append( "%dS%s %s%s" % (card["rar"],func_select('id',card["weaponId"],wc_category)['weapon_name'],card["preName"].encode('utf-8'),card["name"].encode('utf-8')) )
+    characters = sorted(characters, reverse=True)
+    weapons = []
+    for weapon in regist_checkregister_resp["result"]["weapons"]:
+      print "%dS%s %s" % (weapon["rar"],func_select('id',weapon["category"],wc_category)['weapon_name'],weapon["name"].encode('utf-8'))
+      weapons.append( "%dS%s %s" % (weapon["rar"],func_select('id',weapon["category"],wc_category)['weapon_name'],weapon["name"].encode('utf-8')) )
+    weapons = sorted(weapons, reverse=True)    
+    func_send_google_forms('1GoZINbwDpbfk04tzjZlDgjl1IGW2SYQkKry1xbTTAss', session['cookie'].lstrip('wcatpt=').rstrip('%3A1') + ',' + session['uh'], regist_checkregister_resp["result"]["userStatus"]["crystal"], regist_checkregister_resp["result"]["userInfo"]["inviteCode"], characters, weapons[0])
+    #print_color( characters )
+      
   elif sys.argv[1] == 'test' or sys.argv[1] == 'te':
     session = wc_load_session()
-    #regist_checkregister_resp = wc_request(session,'ajax/regist/checkregister', None)     
-    #print_color(regist_checkregister_resp, '1;32') 
+    #wc_quest_generate_complete(session,10022,0,0,0,1,True)
+    #wc_quest_generate_complete(session,10023,0,0,0,1,True)
+    #wc_quest_generate_complete(session,10024,0,0,0,1,True)
+    #wc_quest_generate_complete(session,10046,0,0,0,1,True)
+    #wc_quest_generate_complete(session,10026,0,0,0,1,True)
 
     #wc_quest_generate_complete(session,10057,0,0,0,0,True)
     #wc_quest_generate_complete(session,10058,0,0,0,0,True)
     #wc_quest_generate_complete(session,10059,0,0,0,0,True)
     #wc_quest_generate_complete(session,10060,0,0,0,0,True)
-    wc_quest_generate_complete(session,10061,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10061,0,0,0,0,True)
+    
     #wc_quest_generate_complete(session,10062,0,0,0,0,True)
     #wc_quest_generate_complete(session,10063,0,0,0,0,True)
     #wc_quest_generate_complete(session,10064,0,0,0,0,True)
     #wc_quest_generate_complete(session,10065,0,0,0,0,True)
-    wc_quest_generate_complete(session,10066,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10078,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10079,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10080,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10081,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10082,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10066,0,0,0,0,True)
+    
+    wc_quest_generate_complete(session,10078,0,0,0,0,True)
+    wc_quest_generate_complete(session,10079,0,0,0,0,True)
+    wc_quest_generate_complete(session,10080,0,0,0,0,True)
+    wc_quest_generate_complete(session,10081,0,0,0,0,True)
+    wc_quest_generate_complete(session,10082,0,0,0,0,True)
    
     #wc_quest_generate_complete(session,10007,0,0,0,0,True)
     #wc_quest_generate_complete(session,10008,0,0,0,0,True)
     #wc_quest_generate_complete(session,10009,0,0,0,0,True)
     #wc_quest_generate_complete(session,10033,0,0,0,0,True)
     #wc_quest_generate_complete(session,10041,0,0,0,0,True)
-      
+
+  elif sys.argv[1] == 'daily':
+    func_daily_main(sys.argv[2],sys.argv[3])
+          
   elif sys.argv[1] == 'eventlist' or sys.argv[1] == 'ev':
     session = wc_load_session()
-    wc_request(session,'ajax/quest/eventlist', None,True)
+    quest_eventlist = wc_request(session,'ajax/quest/eventlist', None)
+    for event in quest_eventlist["result"]["events"]:
+      print event["name"] + " (" + event["limitTimeInfo"] + ")" #event["locationId"] + " - " + 
+      for quest in quest_eventlist["result"]["quests"]:
+        if event["locationId"] == quest["locationId"]:
+          print "  " + str(quest["questId"]) + " - " + quest["name"]
+      print 
+      
 if __name__ == "__main__":
   main()
