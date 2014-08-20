@@ -224,6 +224,12 @@ def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0,debug=False
           if stageEnemyParam["smonId"] == stageEnemie["smonId"]:
             gold += stageEnemyParam["gold"]
             exp += stageEnemyParam["exp"]
+    if stageData.has_key('stageTreasures'):
+      for stageTreasure in stageData["stageTreasures"]:
+        if stageTreasure.has_key('itemId'):    
+          itemIds.append(stageTreasure["itemId"])
+        openTreasureIds.append(stageTreasure["id"])
+          
   if debug:
     print "gold            : " + str(gold)
     print "soul            : " + str(exp)
@@ -423,16 +429,28 @@ def main():
     #regist_checkregister_resp = wc_request(session,'ajax/regist/checkregister', None)     
     #print_color(regist_checkregister_resp, '1;32') 
 
-    #wc_quest_generate_complete(session,10061,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10066,0,0,0,0,True)
-    #wc_quest_generate_complete(session,10040,0,0,0,0,True)
-    wc_quest_generate_complete(session,10078,0,0,0,0,False)
-    wc_quest_generate_complete(session,10079,0,0,0,0,False)
-    wc_quest_generate_complete(session,10080,0,0,0,0,False)
-    wc_quest_generate_complete(session,10081,0,0,0,0,False)
-    wc_quest_generate_complete(session,10082,0,0,0,0,False)
+    #wc_quest_generate_complete(session,10057,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10058,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10059,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10060,0,0,0,0,True)
+    wc_quest_generate_complete(session,10061,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10062,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10063,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10064,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10065,0,0,0,0,True)
+    wc_quest_generate_complete(session,10066,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10078,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10079,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10080,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10081,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10082,0,0,0,0,True)
+   
+    #wc_quest_generate_complete(session,10007,0,0,0,0,True)
     #wc_quest_generate_complete(session,10008,0,0,0,0,True)
-
+    #wc_quest_generate_complete(session,10009,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10033,0,0,0,0,True)
+    #wc_quest_generate_complete(session,10041,0,0,0,0,True)
+      
   elif sys.argv[1] == 'eventlist' or sys.argv[1] == 'ev':
     session = wc_load_session()
     wc_request(session,'ajax/quest/eventlist', None,True)
