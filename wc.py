@@ -205,7 +205,7 @@ def func_list_to_string(ids):
 def wc_quest_generate_complete(session,qid,did=0,fid=0,fcid=0,hard=0,debug=False):
   if fid == 0 and fcid == 0:
     quest_list_resp = wc_request(session,'ajax/quest/list', '{"wid":1,"aid":1,"hard":0}') 
-    rand = random.randrange(0, 5, 1)
+    rand = random.randrange(0, len(quest_list_resp["result"]["friends"]), 1)
     fid = quest_list_resp["result"]["friends"][rand]["userInfo"]["id"]
     fcid = quest_list_resp["result"]["friends"][rand]["card"]["cId"]
   qt = generate_qt()
@@ -592,7 +592,11 @@ def main():
 
   elif sys.argv[1] == 'daily':
     func_daily_main(sys.argv[2],sys.argv[3])
-          
+
+  elif sys.argv[1] == 'quest' or sys.argv[1] == 'qe':
+    session = wc_load_session()
+    wc_quest_generate_complete(session,int(sys.argv[2]),0,0,0,0,True)
+                      
   elif sys.argv[1] == 'eventlist' or sys.argv[1] == 'ev':
     session = wc_load_session()
     quest_eventlist = wc_request(session,'ajax/quest/eventlist', None)
@@ -602,6 +606,7 @@ def main():
         if event["locationId"] == quest["locationId"]:
           print "  " + str(quest["questId"]) + " - " + quest["name"]
       print 
-      
+
+
 if __name__ == "__main__":
   main()
